@@ -5,10 +5,12 @@
   "mesh_file": "512.nmsh",
   "output_boundary": true,
   "output_checkpoints": false,
+  "checkpoint_control": "simulationtime",
+  "checkpoint_value": 10.0,
   "output_at_end": true,
   "load_balance": false,
   "job_timelimit": "00:00:00",
-  "end_time": 3.0,
+  "end_time": 0.1,
   "timestep": 1e-2,
   "numerics": {
     "time_order": 3,
@@ -36,7 +38,7 @@
       "max_iterations": 800
     },
     "output_control": "simulationtime",
-    "output_value": 1 
+    "output_value": 0.1 
   },
   "simulation_components": 
   [
