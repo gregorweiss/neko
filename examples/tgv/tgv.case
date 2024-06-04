@@ -5,6 +5,7 @@
   "mesh_file": "512.nmsh",
   "output_boundary": true,
   "output_checkpoints": false,
+  "output_format": "adios2",
   "checkpoint_control": "simulationtime",
   "checkpoint_value": 10.0,
   "output_at_end": true,
