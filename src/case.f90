@@ -371,13 +371,15 @@ contains
     !
     ! Setup sampler
     !
+    call json_get_or_default(C%params, 'case.output_format',&
+                             string_val, 'fld')
     call C%s%init(C%end_time)
     if (scalar) then
        C%f_out = fluid_output_t(precision, C%fluid, C%scalar, &
-            path = trim(output_directory))
+            path=trim(output_directory), fmt=trim(string_val))
     else
        C%f_out = fluid_output_t(precision, C%fluid, &
-            path = trim(output_directory))
+            path=trim(output_directory), fmt=trim(string_val))
     end if
 
     call json_get_or_default(C%params, 'case.fluid.output_control',&
