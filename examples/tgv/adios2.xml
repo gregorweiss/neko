@@ -12,6 +12,24 @@
 
     <io name="writer">
 
+        <variable name="velocity">
+                <operation type="zfp">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
+        <variable name="pressure">
+                <operation type="zfp">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
+        <variable name="temperature">
+                <operation type="zfp">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
         <engine type="BP5">
             
             <!-- for vectorized memory operations, make sure your system 
