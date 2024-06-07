@@ -5,5 +5,6 @@ SUBDIRS = rea2nbin\
 	  average_field_in_space\
 	  calc_lift_from_field\
 	  postprocess_fluid_stats\
-	  map_to_equidistant_1d
+	  map_to_equidistant_1d\
+	  adios2_to_nek5000
 
