@@ -12,6 +12,7 @@
 
     <io name="writer">
 
+    <!--====================================
         <variable name="velocity">
                 <operation type="zfp">
                     <parameter key="rate" value="4"/>
@@ -29,6 +30,7 @@
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
+        ====================================-->
 
         <engine type="BP5">
             
