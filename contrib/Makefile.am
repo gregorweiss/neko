@@ -6,5 +6,6 @@ SUBDIRS = rea2nbin\
 	  calc_lift_from_field\
 	  postprocess_fluid_stats\
 	  map_to_equidistant_1d\
-	  adios2_to_nek5000
+	  adios2_to_nek5000\
+	  psnr
 
