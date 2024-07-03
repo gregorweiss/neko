@@ -12,24 +12,36 @@
 
     <io name="writer">
 
-    <!--====================================
-        <variable name="velocity">
-                <operation type="zfp">
+        <variable name="velocity-u">
+                <operation type="bigwhoop">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
+        <variable name="velocity-v">
+                <operation type="bigwhoop">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
+        <variable name="velocity-w">
+                <operation type="bigwhoop">
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="pressure">
-                <operation type="zfp">
+                <operation type="bigwhoop">
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="temperature">
-                <operation type="zfp">
+                <operation type="bigwhoop">
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
+    <!--====================================
         ====================================-->
 
         <engine type="BP5">
