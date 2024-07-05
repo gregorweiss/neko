@@ -42,6 +42,18 @@
                 </operation>
         </variable>
 
+        <variable name="s01">
+                <operation type="bigwhoop">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
+        <variable name="s02">
+                <operation type="bigwhoop">
+                    <parameter key="rate" value="4"/>
+                </operation>
+        </variable>
+
         <variable name="fields">
                 <operation type="bigwhoop">
                     <parameter key="rate" value="4"/>
