@@ -151,7 +151,7 @@ contains
     real(kind=rp) :: stats_start_time, stats_output_val
     integer :: stats_sampling_interval
     integer :: output_dir_len
-    integer :: precision
+    integer :: precision, layout
 
     !
     ! Load mesh
@@ -369,6 +369,11 @@ contains
     end if
 
     !
+    ! Setup output layout of the field bp file
+    !
+    call json_get_or_default(C%params, 'case.output_layout', layout, 1)
+
+    !
     ! Setup sampler
     !
     call json_get_or_default(C%params, 'case.output_format',&
@@ -376,10 +381,10 @@ contains
     call C%s%init(C%end_time)
     if (scalar) then
        C%f_out = fluid_output_t(precision, C%fluid, C%scalar, &
-            path=trim(output_directory), fmt=trim(string_val))
+            path=trim(output_directory), fmt=trim(string_val), layout=layout)
     else
        C%f_out = fluid_output_t(precision, C%fluid, &
-            path=trim(output_directory), fmt=trim(string_val))
+            path=trim(output_directory), fmt=trim(string_val), layout=layout)
     end if
 
     call json_get_or_default(C%params, 'case.fluid.output_control',&
