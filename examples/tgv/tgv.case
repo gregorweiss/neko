@@ -6,6 +6,7 @@
   "output_boundary": true,
   "output_checkpoints": false,
   "output_format": "adios2",
+  "output_layout": 4,
   "checkpoint_control": "simulationtime",
   "checkpoint_value": 10.0,
   "output_at_end": true,
