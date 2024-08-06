@@ -13,49 +13,65 @@
     <io name="writer">
 
         <variable name="velocity-u">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="velocity-v">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="velocity-w">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="pressure">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="temperature">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="s01">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="s02">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
 
         <variable name="fields">
-                <operation type="bigwhoop">
+                <operation type="plugin">
+	            <parameter key="PluginName" value="OperatorPlugin"/>
+		    <parameter key="PluginLibrary" value="BigWhoopOperator"/>
                     <parameter key="rate" value="4"/>
                 </operation>
         </variable>
