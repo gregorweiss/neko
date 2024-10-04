@@ -4,10 +4,10 @@ io/format/nmsh.o : io/format/nmsh.f90 config/num_types.o
 io/format/re2.o : io/format/re2.f90 config/num_types.o 
 io/format/map.o : io/format/map.f90 mesh/mesh.o 
 io/format/stl.o : io/format/stl.f90 config/num_types.o 
-io/buffer/buffer.o : io/buffer/buffer.f90 math/vector.o config/num_types.o 
-io/buffer/buffer_1d.o : io/buffer/buffer_1d.f90 io/buffer/buffer.o math/vector.o config/num_types.o 
-io/buffer/buffer_4d.o : io/buffer/buffer_4d.f90 io/buffer/buffer.o math/vector.o config/num_types.o 
-io/buffer/buffer_4d_npar.o : io/buffer/buffer_4d_npar.f90 io/buffer/buffer.o math/vector.o config/num_types.o 
+io/buffer/buffer.o : io/buffer/buffer.F90 math/vector.o config/num_types.o 
+io/buffer/buffer_1d.o : io/buffer/buffer_1d.F90 io/buffer/buffer.o math/vector.o config/num_types.o 
+io/buffer/buffer_4d.o : io/buffer/buffer_4d.F90 io/buffer/buffer.o math/vector.o config/num_types.o 
+io/buffer/buffer_4d_npar.o : io/buffer/buffer_4d_npar.F90 io/buffer/buffer.o math/vector.o config/num_types.o 
 common/log.o : common/log.f90 config/num_types.o comm/comm.o 
 comm/comm.o : comm/comm.F90 config/neko_config.o common/utils.o 
 mesh/curve.o : mesh/curve.f90 common/utils.o adt/stack.o common/structs.o config/num_types.o 
@@ -110,7 +110,7 @@ io/generic_file.o : io/generic_file.f90 comm/comm.o common/utils.o config/num_ty
 io/map_file.o : io/map_file.f90 io/format/map.o comm/comm.o common/utils.o io/generic_file.o 
 io/re2_file.o : io/re2_file.f90 common/log.o adt/htable.o io/map_file.o io/format/map.o io/format/re2.o common/datadist.o comm/mpi_types.o comm/comm.o mesh/point.o mesh/mesh.o common/utils.o config/num_types.o io/generic_file.o 
 io/rea_file.o : io/rea_file.f90 common/log.o adt/htable.o common/datadist.o comm/comm.o io/map_file.o io/re2_file.o io/format/rea.o io/format/map.o mesh/point.o mesh/mesh.o common/utils.o config/num_types.o io/generic_file.o 
-io/bp_file.o : io/bp_file.f90 io/buffer/buffer_4d_npar.o io/buffer/buffer_4d.o io/buffer/buffer_1d.o comm/comm.o common/datadist.o common/utils.o io/fld_file_data.o common/structs.o mesh/mesh.o sem/space.o math/vector.o sem/dofmap.o field/field_list.o io/generic_file.o 
+io/bp_file.o : io/bp_file.F90 io/buffer/buffer_4d_npar.o io/buffer/buffer_4d.o io/buffer/buffer_1d.o comm/comm.o common/datadist.o common/utils.o io/fld_file_data.o common/structs.o mesh/mesh.o sem/space.o math/vector.o sem/dofmap.o field/field_list.o io/generic_file.o 
 io/fld_file.o : io/fld_file.f90 comm/mpi_types.o math/math.o common/datadist.o comm/comm.o common/utils.o mesh/mesh.o fluid/mean_sqr_flow.o fluid/mean_flow.o io/fld_file_data.o math/vector.o common/structs.o sem/space.o sem/dofmap.o field/field_list.o field/field.o io/generic_file.o 
 io/fld_file_data.o : io/fld_file_data.f90 math/vector.o math/math.o config/num_types.o 
 io/vtk_file.o : io/vtk_file.f90 comm/comm.o common/log.o mesh/tri_mesh.o mesh/tet_mesh.o field/mesh_field.o sem/dofmap.o field/field.o mesh/mesh.o common/utils.o io/generic_file.o config/num_types.o 
