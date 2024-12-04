@@ -56,23 +56,32 @@ module fluid_output
 
 contains
 
-  function fluid_output_init(precision, fluid, scalar, name, path) result(this)
+  function fluid_output_init(precision, fluid, scalar, name, path, fmt) result(this)
     integer, intent(inout) :: precision
     class(fluid_scheme_t), intent(in), target :: fluid
     class(scalar_scheme_t), intent(in), optional, target :: scalar
     character(len=*), intent(in), optional :: name
     character(len=*), intent(in), optional :: path
+    character(len=*), intent(in), optional :: fmt
     type(fluid_output_t) :: this
     character(len=1024) :: fname
+    character(len=10) :: suffix
+
+    suffix = '.fld'
+    if (present(fmt)) then
+       if (fmt .eq. 'adios2') then
+          suffix = '.bp'
+       end if
+    end if
 
     if (present(name) .and. present(path)) then
-       fname = trim(path) // trim(name) // '.fld'
+       fname = trim(path) // trim(name) // trim(suffix)
     else if (present(name)) then
-       fname = trim(name) // '.fld'
+       fname = trim(name) // trim(suffix)
     else if (present(path)) then
-       fname = trim(path) // 'field.fld'
+       fname = trim(path) // 'field' // trim(suffix)
     else
-       fname = 'field.fld'
+       fname = 'field' // trim(suffix)
     end if
 
     call this%init_base(fname, precision)

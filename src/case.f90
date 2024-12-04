@@ -387,13 +387,15 @@ contains
     !
     ! Setup output_controller
     !
+    call json_get_or_default(this%params, 'case.output_format',&
+                             string_val, 'fld')
     call this%output_controller%init(this%end_time)
     if (scalar) then
        this%f_out = fluid_output_t(precision, this%fluid, this%scalar, &
-            path = trim(this%output_directory))
+            path = trim(this%output_directory), fmt=trim(string_val))
     else
        this%f_out = fluid_output_t(precision, this%fluid, &
-            path = trim(this%output_directory))
+            path = trim(this%output_directory), fmt=trim(string_val))
     end if
 
     call json_get_or_default(this%params, 'case.fluid.output_control',&
