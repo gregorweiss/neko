@@ -51,6 +51,7 @@ module bp_file
   use buffer_1d
   use buffer_4d
   use buffer_4d_npar
+  use buffer_3d
   implicit none
   private
 
@@ -94,7 +95,7 @@ contains
     character(len=1024) :: start_field
     integer :: i, j, ierr, n, suffix_pos, tslash_pos
     integer :: lx, ly, lz, lxyz, gdim, glb_nelv, nelv, offset_el
-    integer :: npar
+    integer :: nelx, nely, nelz, npar
     integer, allocatable :: idx(:)
     type(array_ptr_t), allocatable :: scalar_fields(:)
     integer :: n_scalar_fields
@@ -118,6 +119,9 @@ contains
     write_velocity = .false.
     write_pressure = .false.
     write_temperature = .false.
+    nelx = 0
+    nely = 0
+    nelz = 0
 
     !> @todo support for other input data types like in fld_file
     select type(data)
@@ -221,6 +225,45 @@ contains
        do i = 1, msh%nelv
           idx(i) = msh%elements(i)%e%id()
        end do
+
+       !> @todo: this is only valid on a serial run of a boxed mesh.
+       !>        should be solved inside mesh classes and for more versatile meshes.
+       if (pe_size .eq. 1) then
+          ! Determine number of elements in x, y, z direction.
+          ! Only works for box meshes.
+          j = 1
+          ! If non-zero, facet is periodic
+          if (msh%facet_neigh(1, j) .ne. 0) then
+             j = msh%facet_neigh(1, j)
+          else
+             j = msh%facet_neigh(2, j)
+             do while (msh%facet_neigh(2, j) .ne. 0)
+                j = msh%facet_neigh(2, j)
+             end do
+          end if
+          nelx = j
+
+          if (msh%facet_neigh(3, j) .ne. 0) then
+             j = msh%facet_neigh(3, j)
+          else
+             j = msh%facet_neigh(4, j)
+             do while (msh%facet_neigh(4, j) .ne. 0)
+                j = msh%facet_neigh(4, j)
+             end do
+          end if
+          nely = j / nelx
+
+          if (msh%facet_neigh(5, j) .ne. 0) then
+             j = msh%facet_neigh(5, j)
+          else
+             j = msh%facet_neigh(6, j)
+             do while (msh%facet_neigh(6, j) .ne. 0)
+                j = msh%facet_neigh(6, j)
+             end do
+          end if
+          nelz = j / (nelx * nely)
+
+       end if
     end if
 
     if (associated(Xh)) then
@@ -249,6 +292,9 @@ contains
        else if (this%layout .eq. 2) then
           allocate(buffer_4d_t::outbuf_npar)
           call outbuf_npar%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+       else if (this%layout .eq. 3) then
+          allocate(buffer_3d_t::outbuf_npar)
+          call outbuf_npar%init(this%dp_precision, gdim, nelx, nely, nelz, lx, ly, lz)
        else if (this%layout .eq. 4) then
           allocate(buffer_4d_npar_t::outbuf_npar)
           call outbuf_npar%init(this%dp_precision, npar, glb_nelv, offset_el, nelv, lx, ly, lz)
@@ -294,9 +340,9 @@ contains
 
     ! Create binary header information
     write(hdr, 1) adios2_type, lx, ly, lz, this%layout, glb_nelv,&
-         time, this%counter, npar, (rdcode(i),i=1,10)
+         time, this%counter, nelx, nely, nelz, npar, (rdcode(i),i=1,10)
 1   format('#std',1x,i1,1x,i2,1x,i2,1x,i2,1x,i10,1x,i10,1x,e20.13,&
-         1x,i9,1x,i6,1x,10a)
+         1x,i9,1x,i6,1x,i6,1x,i6,1x,i6,1x,10a)
 
     ! Adapt filename with counter
     !> @todo write into single file with multiple steps
@@ -318,12 +364,14 @@ contains
     call adios2_open(bpWriter, ioWriter, trim(fname), adios2_mode_write, NEKO_COMM%mpi_val, ierr)
     call adios2_begin_step(bpWriter, ierr)
 
-    ! Write header
-    call adios2_inquire_variable(variable_hdr, ioWriter, 'header', ierr)
-    if (.not.variable_hdr%valid) then
-       call adios2_define_variable(variable_hdr, ioWriter, 'header', adios2_type_character, ierr)
+    if (pe_rank .eq. 0) then
+       ! Write header
+       call adios2_inquire_variable(variable_hdr, ioWriter, 'header', ierr)
+       if (.not.variable_hdr%valid) then
+          call adios2_define_variable(variable_hdr, ioWriter, 'header', adios2_type_character, ierr)
+       end if
+       call adios2_put(bpWriter, variable_hdr, hdr, adios2_mode_sync, ierr)
     end if
-    call adios2_put(bpWriter, variable_hdr, hdr, adios2_mode_sync, ierr)
 
     ! Write element idxs
     shape_dims = (int(glb_nelv, i8))
@@ -436,7 +484,7 @@ contains
     logical :: read_temp
     character(len=8) :: id_str
     integer :: lx, ly, lz, glb_nelv, counter, lxyz
-    integer :: npar
+    integer :: nelx, nely, nelz, npar
     integer :: adios2_type, n_scalars, n
     real(kind=rp) :: time
     type(linear_dist_t) :: dist
@@ -512,9 +560,9 @@ contains
        call adios2_get(bpReader, variable_hdr, hdr, adios2_mode_sync, ierr)
 
        read(hdr, 1) temp_str, adios2_type, lx, ly, lz, this%layout, glb_nelv,&
-          time, counter, npar, (rdcode(i),i=1,10)
+          time, counter, nelx, nely, nelz, npar, (rdcode(i),i=1,10)
 1      format(4a,1x,i1,1x,i2,1x,i2,1x,i2,1x,i10,1x,i10,1x,e20.13,&
-         1x,i9,1x,i6,1x,10a)
+         1x,i9,1x,i6,1x,i6,1x,i6,1x,i6,1x,10a)
        if (data%nelv .eq. 0) then
           dist = linear_dist_t(glb_nelv, pe_rank, pe_size, NEKO_COMM)
           data%nelv = dist%num_local()
@@ -550,6 +598,8 @@ contains
           if (.not. allocated(inpbuf)) allocate(buffer_1d_t::inpbuf)
        else if (this%layout .eq. 2) then
           if (.not. allocated(inpbuf)) allocate(buffer_4d_t::inpbuf)
+       else if (this%layout .eq. 3) then
+          if (.not. allocated(inpbuf)) allocate(buffer_3d_t::inpbuf)
        else if (this%layout .eq. 4) then
           if (.not. allocated(inpbuf)) allocate(buffer_4d_npar_t::inpbuf)
        end if
@@ -561,6 +611,8 @@ contains
        type is (buffer_4d_t)
           call inpbuf%init(this%dp_precision, data%gdim, data%glb_nelv, data%offset_el, &
                data%nelv, lx, ly, lz)
+       type is (buffer_3d_t)
+          call inpbuf%init(this%dp_precision, data%gdim, nelx, nely, nelz, lx, ly, lz)
        type is (buffer_4d_npar_t)
           call inpbuf%init(this%dp_precision, npar, data%glb_nelv, data%offset_el, &
                data%nelv, lx, ly, lz)
@@ -757,8 +809,7 @@ contains
     class(bp_file_t) :: this
     integer, intent(in) :: layout
 
-    !> Messy at the moment but anticipates other layouts.
-    if (layout .ge. 1 .and. layout .le. 4 .and. layout .ne. 3) then
+    if (layout .ge. 1 .and. layout .le. 4) then
        this%layout = layout
     else
        call neko_error('Invalid data layout')
