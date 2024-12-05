@@ -52,6 +52,7 @@ module bp_file
   use buffer_4d
   use buffer_4d_npar
   use buffer_3d
+  use buffer_3d_npar
   implicit none
   private
 
@@ -298,6 +299,9 @@ contains
        else if (this%layout .eq. 4) then
           allocate(buffer_4d_npar_t::outbuf_npar)
           call outbuf_npar%init(this%dp_precision, npar, glb_nelv, offset_el, nelv, lx, ly, lz)
+       else if (this%layout .eq. 5) then
+          allocate(buffer_3d_npar_t::outbuf_npar)
+          call outbuf_npar%init(this%dp_precision, npar, nelx, nely, nelz, lx, ly, lz)
        else
           call neko_error('Invalid buffer')
        end if
@@ -602,6 +606,8 @@ contains
           if (.not. allocated(inpbuf)) allocate(buffer_3d_t::inpbuf)
        else if (this%layout .eq. 4) then
           if (.not. allocated(inpbuf)) allocate(buffer_4d_npar_t::inpbuf)
+       else if (this%layout .eq. 5) then
+          if (.not. allocated(inpbuf)) allocate(buffer_3d_npar_t::inpbuf)
        end if
 
        select type(inpbuf)
@@ -616,6 +622,8 @@ contains
        type is (buffer_4d_npar_t)
           call inpbuf%init(this%dp_precision, npar, data%glb_nelv, data%offset_el, &
                data%nelv, lx, ly, lz)
+       type is (buffer_3d_npar_t)
+          call inpbuf%init(this%dp_precision, npar, nelx, nely, nelz, lx, ly, lz)
        class default
           call neko_error('Invalid buffer')
        end select
@@ -809,7 +817,7 @@ contains
     class(bp_file_t) :: this
     integer, intent(in) :: layout
 
-    if (layout .ge. 1 .and. layout .le. 4) then
+    if (layout .ge. 1 .and. layout .le. 5) then
        this%layout = layout
     else
        call neko_error('Invalid data layout')
