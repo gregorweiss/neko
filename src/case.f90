@@ -146,7 +146,7 @@ contains
     real(kind=rp) :: real_val
     character(len = :), allocatable :: string_val
     integer :: output_dir_len
-    integer :: precision, layout
+    integer :: precision, layout, time_pack
 
     !
     ! Load mesh
@@ -385,9 +385,10 @@ contains
     end if
 
     !
-    ! Setup output layout and format of the field bp file
+    ! Setup output layout, format, and time packing of the field bp file
     !
     call json_get_or_default(this%params, 'case.output_layout', layout, 1)
+    call json_get_or_default(this%params, 'case.output_time_pack', time_pack, 1)
     call json_get_or_default(this%params, 'case.output_format',&
                              string_val, 'fld')
 
@@ -397,10 +398,12 @@ contains
     call this%output_controller%init(this%end_time)
     if (scalar) then
        this%f_out = fluid_output_t(precision, this%fluid, this%scalar, &
-            path = trim(this%output_directory), fmt=trim(string_val), layout=layout)
+            path = trim(this%output_directory), fmt=trim(string_val), &
+            layout=layout, time_pack=time_pack)
     else
        this%f_out = fluid_output_t(precision, this%fluid, &
-            path = trim(this%output_directory), fmt=trim(string_val), layout=layout)
+            path = trim(this%output_directory), fmt=trim(string_val), &
+            layout=layout, time_pack=time_pack)
     end if
 
     call json_get_or_default(this%params, 'case.fluid.output_control',&

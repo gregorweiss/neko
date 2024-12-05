@@ -53,11 +53,14 @@ module bp_file
   use buffer_4d_npar
   use buffer_3d
   use buffer_3d_npar
+  use buffer_3d_nts
   implicit none
   private
 
   class(buffer_t), private, allocatable :: outbuf_points
   class(buffer_t), private, allocatable :: outbuf_npar
+  class(buffer_t), private, allocatable :: inpbuf_points
+  class(buffer_t), private, allocatable :: inpbuf
 
 #ifdef HAVE_ADIOS2_FORTRAN
   type(adios2_adios)    :: adios
@@ -69,11 +72,13 @@ module bp_file
   type, public, extends(generic_file_t) :: bp_file_t
      logical :: dp_precision = .false. !< Precision of output data
      integer :: layout = 1 !< Dimensionality layout of data buffer
+     integer :: time_pack = 1 !< Packing of time steps for compression
    contains
      procedure :: read => bp_file_read
      procedure :: write => bp_file_write
      procedure :: set_precision => bp_file_set_precision
      procedure :: set_layout => bp_file_set_layout
+     procedure :: set_time_pack => bp_file_set_time_pack
   end type bp_file_t
 
 contains
@@ -283,25 +288,28 @@ contains
     end if
 
     if (.not. allocated(outbuf_points)) allocate(buffer_1d_t::outbuf_points)
-    call outbuf_points%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+    call outbuf_points%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, 1, 1)
 
-    write(*,*) "writing layout ", this%layout
     if (.not. allocated(outbuf_npar)) then
        if (this%layout .eq. 1) then
           allocate(buffer_1d_t::outbuf_npar)
-          call outbuf_npar%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+          call outbuf_npar%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, 1, npar)
        else if (this%layout .eq. 2) then
           allocate(buffer_4d_t::outbuf_npar)
-          call outbuf_npar%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+          call outbuf_npar%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, 1, npar)
        else if (this%layout .eq. 3) then
           allocate(buffer_3d_t::outbuf_npar)
-          call outbuf_npar%init(this%dp_precision, gdim, nelx, nely, nelz, lx, ly, lz)
+          call outbuf_npar%init(this%dp_precision, gdim, nelx, nely, nelz, lx, ly, lz, 1, npar)
        else if (this%layout .eq. 4) then
           allocate(buffer_4d_npar_t::outbuf_npar)
-          call outbuf_npar%init(this%dp_precision, npar, glb_nelv, offset_el, nelv, lx, ly, lz)
+          call outbuf_npar%init(this%dp_precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, 1, npar)
        else if (this%layout .eq. 5) then
           allocate(buffer_3d_npar_t::outbuf_npar)
-          call outbuf_npar%init(this%dp_precision, npar, nelx, nely, nelz, lx, ly, lz)
+          call outbuf_npar%init(this%dp_precision, gdim, nelx, nely, nelz, lx, ly, lz, 1, npar)
+       else if (this%layout .eq. 6) then
+          allocate(buffer_3d_nts_t::outbuf_npar)
+          call outbuf_npar%init(this%dp_precision, gdim, nelx, nely, nelz, lx, ly, lz, &
+               this%time_pack, npar)
        else
           call neko_error('Invalid buffer')
        end if
@@ -344,9 +352,9 @@ contains
 
     ! Create binary header information
     write(hdr, 1) adios2_type, lx, ly, lz, this%layout, glb_nelv,&
-         time, this%counter, nelx, nely, nelz, npar, (rdcode(i),i=1,10)
+         time, this%counter, nelx, nely, nelz, this%time_pack, npar, (rdcode(i),i=1,10)
 1   format('#std',1x,i1,1x,i2,1x,i2,1x,i2,1x,i10,1x,i10,1x,e20.13,&
-         1x,i9,1x,i6,1x,i6,1x,i6,1x,i6,1x,10a)
+         1x,i9,1x,i6,1x,i6,1x,i6,1x,i6,1x,i6,1x,10a)
 
     ! Adapt filename with counter
     !> @todo write into single file with multiple steps
@@ -473,8 +481,10 @@ contains
 
     this%counter = this%counter + 1
 
-    if (allocated(outbuf_points)) deallocate(outbuf_points)
-    if (allocated(outbuf_npar)) deallocate(outbuf_npar)
+    if (this%layout .le. 5) then
+       if (allocated(outbuf_points)) deallocate(outbuf_points)
+       if (allocated(outbuf_npar)) deallocate(outbuf_npar)
+    end if
   end subroutine bp_file_write
 
   !> Load a field from a ADIOS2 bp file
@@ -493,7 +503,6 @@ contains
     real(kind=rp) :: time
     type(linear_dist_t) :: dist
     character :: rdcode(10), temp_str(4)
-    class(buffer_t), allocatable :: inpbuf_points, inpbuf
     type(adios2_engine)   :: bpReader
     type(adios2_variable) :: variable_hdr, variable_idx, variable
     integer(kind=8), dimension(1) :: start_dims, count_dims
@@ -564,9 +573,9 @@ contains
        call adios2_get(bpReader, variable_hdr, hdr, adios2_mode_sync, ierr)
 
        read(hdr, 1) temp_str, adios2_type, lx, ly, lz, this%layout, glb_nelv,&
-          time, counter, nelx, nely, nelz, npar, (rdcode(i),i=1,10)
+          time, counter, nelx, nely, nelz, this%time_pack, npar, (rdcode(i),i=1,10)
 1      format(4a,1x,i1,1x,i2,1x,i2,1x,i2,1x,i10,1x,i10,1x,e20.13,&
-         1x,i9,1x,i6,1x,i6,1x,i6,1x,i6,1x,10a)
+         1x,i9,1x,i6,1x,i6,1x,i6,1x,i6,1x,i6,1x,10a)
        if (data%nelv .eq. 0) then
           dist = linear_dist_t(glb_nelv, pe_rank, pe_size, NEKO_COMM)
           data%nelv = dist%num_local()
@@ -595,9 +604,8 @@ contains
 
        if (.not. allocated(inpbuf_points)) allocate(buffer_1d_t::inpbuf_points)
        call inpbuf_points%init(this%dp_precision, data%gdim, data%glb_nelv, data%offset_el, &
-            data%nelv, lx, ly, lz)
+            data%nelv, lx, ly, lz, 1, 1)
 
-       write(*,*) "layout ", this%layout
        if (this%layout .eq. 1) then
           if (.not. allocated(inpbuf)) allocate(buffer_1d_t::inpbuf)
        else if (this%layout .eq. 2) then
@@ -608,22 +616,29 @@ contains
           if (.not. allocated(inpbuf)) allocate(buffer_4d_npar_t::inpbuf)
        else if (this%layout .eq. 5) then
           if (.not. allocated(inpbuf)) allocate(buffer_3d_npar_t::inpbuf)
+       else if (this%layout .eq. 6) then
+          if (.not. allocated(inpbuf)) then
+             allocate(buffer_3d_nts_t::inpbuf)
+             call inpbuf%init(this%dp_precision, data%gdim, nelx, nely, nelz, lx, ly, lz, &
+                  this%time_pack, npar)
+          end if
        end if
 
        select type(inpbuf)
        type is (buffer_1d_t)
           call inpbuf%init(this%dp_precision, data%gdim, data%glb_nelv, data%offset_el, &
-               data%nelv, lx, ly, lz)
+               data%nelv, lx, ly, lz, 1, npar)
        type is (buffer_4d_t)
           call inpbuf%init(this%dp_precision, data%gdim, data%glb_nelv, data%offset_el, &
-               data%nelv, lx, ly, lz)
+               data%nelv, lx, ly, lz, 1, npar)
        type is (buffer_3d_t)
-          call inpbuf%init(this%dp_precision, data%gdim, nelx, nely, nelz, lx, ly, lz)
+          call inpbuf%init(this%dp_precision, data%gdim, nelx, nely, nelz, lx, ly, lz, 1, npar)
        type is (buffer_4d_npar_t)
-          call inpbuf%init(this%dp_precision, npar, data%glb_nelv, data%offset_el, &
-               data%nelv, lx, ly, lz)
+          call inpbuf%init(this%dp_precision, data%gdim, data%glb_nelv, data%offset_el, &
+               data%nelv, lx, ly, lz, 1, npar)
        type is (buffer_3d_npar_t)
-          call inpbuf%init(this%dp_precision, npar, nelx, nely, nelz, lx, ly, lz)
+          call inpbuf%init(this%dp_precision, data%gdim, nelx, nely, nelz, lx, ly, lz, 1, npar)
+       type is (buffer_3d_nts_t)
        class default
           call neko_error('Invalid buffer')
        end select
@@ -719,6 +734,15 @@ contains
           call inpbuf_points%copy(data%z)
        end if
 
+       if ((this%layout .gt. 5) .and. meta_file) then
+          call adios2_end_step(bpReader, ierr)
+          call adios2_close(bpReader, ierr)
+          write(id_str, '(i5.5,a)') ((this%counter/this%time_pack + 1)*this%time_pack - 1), '.bp'
+          fname = trim(data%fld_series_fname)//'.'//id_str
+          call adios2_open(bpReader, ioReader, trim(fname), adios2_mode_read, NEKO_COMM%mpi_val, ierr)
+          call adios2_begin_step(bpReader, ierr)
+       end if
+
        if (this%layout .gt. 3) then
           call inpbuf%inquire(variable, ioReader, 'fields', ierr)
           call inpbuf%read(bpReader, variable, ierr)
@@ -772,8 +796,10 @@ contains
 
        this%counter = this%counter + 1
 
-       if (allocated(inpbuf_points)) deallocate(inpbuf_points)
-       if (allocated(inpbuf)) deallocate(inpbuf)
+       if (this%layout .le. 5) then
+          if (allocated(inpbuf_points)) deallocate(inpbuf_points)
+          if (allocated(inpbuf)) deallocate(inpbuf)
+       end if
     class default
        call neko_error('Currently we only read into fld_file_data_t,&
                         please use that data structure instead.&
@@ -817,12 +843,24 @@ contains
     class(bp_file_t) :: this
     integer, intent(in) :: layout
 
-    if (layout .ge. 1 .and. layout .le. 5) then
+    if (layout .ge. 1 .and. layout .le. 6) then
        this%layout = layout
     else
        call neko_error('Invalid data layout')
     end if
 
   end subroutine bp_file_set_layout
+
+  subroutine bp_file_set_time_pack(this, time_pack)
+    class(bp_file_t) :: this
+    integer, intent(in) :: time_pack
+
+    if (this%layout .ge. 6) then
+       this%time_pack = time_pack
+    else
+       call neko_warning('Time step packing is ignored for present data layout.' )
+    end if
+
+  end subroutine bp_file_set_time_pack
 
 end module bp_file

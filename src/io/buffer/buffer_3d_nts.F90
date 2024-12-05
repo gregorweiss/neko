@@ -31,7 +31,7 @@
 ! POSSIBILITY OF SUCH DAMAGE.
 !
 !> Generic buffer that is extended with buffers of varying rank
-module buffer_3d_npar
+module buffer_3d_nts
   use num_types
   use vector
 #ifdef HAVE_ADIOS2_FORTRAN
@@ -40,34 +40,38 @@ module buffer_3d_npar
   use buffer
   implicit none
 
+  integer, private :: nthts
+  integer, private :: nts
   integer, private :: nthpar
   integer, private :: npar
 
-  type, extends(buffer_t) :: buffer_3d_npar_t
+  type, extends(buffer_t) :: buffer_3d_nts_t
      integer :: nelx, nely, nelz, lx, ly, lz
      integer(kind=8), dimension(5) :: shape_dims, start_dims, count_dims
      real(kind=dp), private, allocatable :: data_dp(:,:,:,:,:)
      real(kind=sp), private, allocatable :: data_sp(:,:,:,:,:)
    contains
-     procedure :: init => buffer_3d_npar_init
-     procedure :: fill => buffer_3d_npar_fill
+     procedure :: init => buffer_3d_nts_init
+     procedure :: fill => buffer_3d_nts_fill
 #ifdef HAVE_ADIOS2_FORTRAN
-     procedure :: define => buffer_3d_npar_define
-     procedure :: inquire => buffer_3d_npar_inquire
-     procedure :: write => buffer_3d_npar_write
-     procedure :: read => buffer_3d_npar_read
+     procedure :: define => buffer_3d_nts_define
+     procedure :: inquire => buffer_3d_nts_inquire
+     procedure :: write => buffer_3d_nts_write
+     procedure :: read => buffer_3d_nts_read
 #endif
-     procedure :: copy => buffer_3d_npar_copy
-  end type buffer_3d_npar_t
+     procedure :: copy => buffer_3d_nts_copy
+  end type buffer_3d_nts_t
 
 contains
 
-  subroutine buffer_3d_npar_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar)
+    class(buffer_3d_nts_t), intent(inout) :: this
     logical, intent(in) :: precision
     integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar
     integer :: nelx, nely, nelz
 
+    nthts = 0
+    nts = lts
     nthpar = 0
     npar = lpar
 
@@ -87,83 +91,91 @@ contains
        if (allocated(this%data_dp)) then
           deallocate(this%data_dp)
        end if
-       allocate(this%data_dp(nelx*lx, nely*ly, nelz*lz, 1, npar))
+       allocate(this%data_dp(nelx*lx, nely*ly, nelz*lz, nts, npar))
     else
        if (allocated(this%data_sp)) then
           deallocate(this%data_sp)
        end if
-       allocate(this%data_sp(nelx*lx, nely*ly, nelz*lz, 1, npar))
+       allocate(this%data_sp(nelx*lx, nely*ly, nelz*lz, nts, npar))
     end if
 
-    this%shape_dims = [int(nelx*lx, i8), int(nely*ly, i8), int(nelz*lz, i8), int(1, i8), int(npar, i8)]
+    this%shape_dims = [int(nelx*lx, i8), int(nely*ly, i8), int(nelz*lz, i8), int(nts, i8), int(npar, i8)]
     this%start_dims = [int(0, i8), int(0, i8), int(0, i8), int(0, i8), int(0, i8)]
-    this%count_dims = [int(nelx*lx, i8), int(nely*ly, i8), int(nelz*lz, i8), int(1, i8), int(npar, i8)]
+    this%count_dims = [int(nelx*lx, i8), int(nely*ly, i8), int(nelz*lz, i8), int(nts, i8), int(npar, i8)]
 
-  end subroutine buffer_3d_npar_init
+  end subroutine buffer_3d_nts_init
 
-  subroutine buffer_3d_npar_fill(this, x, n)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_fill(this, x, n)
+    class(buffer_3d_nts_t), intent(inout) :: this
     integer, intent(inout) :: n
     real(kind=rp), intent(inout) :: x(n)
     integer :: i, j, k, l, m, nelv, lx, ly, lz, nelx, nely, nelz, index
     integer :: c1, c2, c3, c4, c5
 
-    nthpar = nthpar + 1
-    if (nthpar .le. npar) then
+    if (nthts .le. nts) then
+       if (nthpar .le. npar) then
 
-    lx = this%lx
-    ly = this%ly
-    lz = this%lz
-    nelx = this%nelx
-    nely = this%nely
-    nelz = this%nelz
+          lx = this%lx
+          ly = this%ly
+          lz = this%lz
+          nelx = this%nelx
+          nely = this%nely
+          nelz = this%nelz
 
-    c1 = lx
-    c2 = lx*ly
-    c3 = lx*ly*lz
-    c4 = lx*ly*lz*nelx
-    c5 = lx*ly*lz*nelx*nely
+          c1 = lx
+          c2 = lx*ly
+          c3 = lx*ly*lz
+          c4 = lx*ly*lz*nelx
+          c5 = lx*ly*lz*nelx*nely
 
-    if (this%dp_precision) then
-       do i = 1, nelz
-          do j = 1, nely
-             do k = 1, nelx
-                do l = 1, lz
-                   do m = 1, ly
-                      do n = 1, lx !> @todo unhack name of 'n'
+          if (this%dp_precision) then
+             do i = 1, nelz
+                do j = 1, nely
+                   do k = 1, nelx
+                      do l = 1, lz
+                         do m = 1, ly
+                            do n = 1, lx !> @todo unhack name of 'n'
                    index = (n-1) + c1*(m-1) + c2*(l-1) + c3*(k-1) + c4*(j-1) + c5*(i-1) + 1
-                   this%data_dp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), 1, nthpar) = real(x(index),dp)
+                   this%data_dp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), nthts+1, nthpar+1) = real(x(index),dp)
+                            end do
+                         end do
                       end do
                    end do
                 end do
              end do
-          end do
-       end do
-    else
-       do i = 1, nelz
-          do j = 1, nely
-             do k = 1, nelx
-                do l = 1, lz
-                   do m = 1, ly
-                      do n = 1, lx !> @todo unhack name of 'n'
+          else
+             do i = 1, nelz
+                do j = 1, nely
+                   do k = 1, nelx
+                      do l = 1, lz
+                         do m = 1, ly
+                            do n = 1, lx !> @todo unhack name of 'n'
                    index = (n-1) + c1*(m-1) + c2*(l-1) + c3*(k-1) + c4*(j-1) + c5*(i-1) + 1
-                   this%data_sp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), 1, nthpar) = real(x(index),sp)
+                   this%data_sp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), nthts+1, nthpar+1) = real(x(index),sp)
+                            end do
+                         end do
                       end do
                    end do
                 end do
              end do
-          end do
-       end do
+          end if
+
+          nthpar = nthpar + 1
+
+       end if
     end if
 
+    if (nthpar .eq. npar) then
+       nthpar = 0
+       nthts = nthts + 1
     end if
 
-  end subroutine buffer_3d_npar_fill
+  end subroutine buffer_3d_nts_fill
 
 #ifdef HAVE_ADIOS2_FORTRAN
 
-  subroutine buffer_3d_npar_define(this, variable, io, variable_name, ierr)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_define(this, variable, io, variable_name, ierr)
+    class(buffer_3d_nts_t), intent(inout) :: this
     type(adios2_variable), intent(inout) :: variable
     type(adios2_io), intent(inout) :: io
     character(len=*), intent(in) :: variable_name
@@ -187,10 +199,10 @@ contains
             this%start_dims, this%count_dims, ierr)
     end if
 
-  end subroutine buffer_3d_npar_define
+  end subroutine buffer_3d_nts_define
 
-  subroutine buffer_3d_npar_inquire(this, variable, io, variable_name, ierr)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_inquire(this, variable, io, variable_name, ierr)
+    class(buffer_3d_nts_t), intent(inout) :: this
     type(adios2_variable), intent(inout) :: variable
     type(adios2_io), intent(inout) :: io
     character(len=*), intent(in) :: variable_name
@@ -202,94 +214,110 @@ contains
             this%start_dims, this%count_dims, ierr)
     end if
 
-  end subroutine buffer_3d_npar_inquire
+  end subroutine buffer_3d_nts_inquire
 
-  subroutine buffer_3d_npar_write(this, engine, variable, ierr)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_write(this, engine, variable, ierr)
+    class(buffer_3d_nts_t), intent(inout) :: this
     type(adios2_engine), intent(in) :: engine
     type(adios2_variable), intent(in) :: variable
     integer, intent(inout) :: ierr
 
-    if (this%dp_precision) then
-       call adios2_put(engine, variable, this%data_dp, adios2_mode_sync, ierr)
-    else
-       call adios2_put(engine, variable, this%data_sp, adios2_mode_sync, ierr)
+    if (nthts .eq. nts) then
+       if (this%dp_precision) then
+          call adios2_put(engine, variable, this%data_dp, adios2_mode_sync, ierr)
+       else
+          call adios2_put(engine, variable, this%data_sp, adios2_mode_sync, ierr)
+       end if
+       nthts = 0
     end if
 
-  end subroutine buffer_3d_npar_write
+  end subroutine buffer_3d_nts_write
   
-  subroutine buffer_3d_npar_read(this, engine, variable, ierr)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_read(this, engine, variable, ierr)
+    class(buffer_3d_nts_t), intent(inout) :: this
     type(adios2_engine), intent(in) :: engine
     type(adios2_variable), intent(in) :: variable
     integer, intent(inout) :: ierr
 
-    if (this%dp_precision) then
-       call adios2_get(engine, variable, this%data_dp, adios2_mode_sync, ierr)
-    else
-       call adios2_get(engine, variable, this%data_sp, adios2_mode_sync, ierr)
+    if (nthts .eq. 0) then
+       if (this%dp_precision) then
+          call adios2_get(engine, variable, this%data_dp, adios2_mode_sync, ierr)
+       else
+          call adios2_get(engine, variable, this%data_sp, adios2_mode_sync, ierr)
+       end if
     end if
 
-  end subroutine buffer_3d_npar_read
+  end subroutine buffer_3d_nts_read
 
 #endif
 
-  subroutine buffer_3d_npar_copy(this, x)
-    class(buffer_3d_npar_t), intent(inout) :: this
+  subroutine buffer_3d_nts_copy(this, x)
+    class(buffer_3d_nts_t), intent(inout) :: this
     type(vector_t), intent(inout) :: x
     integer :: i, j, k, l, m, n, nelv, lx, ly, lz, nelx, nely, nelz, index
     integer :: c1, c2, c3, c4, c5
 
-    nthpar = nthpar + 1
-    if (nthpar .le. npar) then
+    if (nthts .le. nts) then
+       if (nthpar .le. npar) then
 
-    lx = this%lx
-    ly = this%ly
-    lz = this%lz
-    nelx = this%nelx
-    nely = this%nely
-    nelz = this%nelz
+          lx = this%lx
+          ly = this%ly
+          lz = this%lz
+          nelx = this%nelx
+          nely = this%nely
+          nelz = this%nelz
 
-    c1 = lx
-    c2 = lx*ly
-    c3 = lx*ly*lz
-    c4 = lx*ly*lz*nelx
-    c5 = lx*ly*lz*nelx*nely
+          c1 = lx
+          c2 = lx*ly
+          c3 = lx*ly*lz
+          c4 = lx*ly*lz*nelx
+          c5 = lx*ly*lz*nelx*nely
 
-    if (this%dp_precision) then
-       do i = 1, nelz
-          do j = 1, nely
-             do k = 1, nelx
-                do l = 1, lz
-                   do m = 1, ly
-                      do n = 1, lx !> @todo unhack name of 'n'
+          if (this%dp_precision) then
+             do i = 1, nelz
+                do j = 1, nely
+                   do k = 1, nelx
+                      do l = 1, lz
+                         do m = 1, ly
+                            do n = 1, lx !> @todo unhack name of 'n'
                    index = (n-1) + c1*(m-1) + c2*(l-1) + c3*(k-1) + c4*(j-1) + c5*(i-1) + 1
-                   x%x(index) = this%data_dp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), 1, nthpar)
+                   x%x(index) = this%data_dp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), nthts+1, nthpar+1)
+                            end do
+                         end do
                       end do
                    end do
                 end do
              end do
-          end do
-       end do
-    else
-       do i = 1, nelz
-          do j = 1, nely
-             do k = 1, nelx
-                do l = 1, lz
-                   do m = 1, ly
-                      do n = 1, lx !> @todo unhack name of 'n'
+          else
+             do i = 1, nelz
+                do j = 1, nely
+                   do k = 1, nelx
+                      do l = 1, lz
+                         do m = 1, ly
+                            do n = 1, lx !> @todo unhack name of 'n'
                    index = (n-1) + c1*(m-1) + c2*(l-1) + c3*(k-1) + c4*(j-1) + c5*(i-1) + 1
-                   x%x(index) = this%data_sp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), 1, nthpar)
+                   x%x(index) = this%data_sp(n+lx*(k-1), m+ly*(j-1), l+lz*(i-1), nthts+1, nthpar+1)
+                            end do
+                         end do
                       end do
                    end do
                 end do
              end do
-          end do
-       end do
+          end if
+
+          nthpar = nthpar + 1
+
+       end if
     end if
 
+    if (nthpar .eq. npar) then
+       nthpar = 0
+       nthts = nthts + 1
+       if (nthts .eq. nts) then
+          nthts = 0
+       end if
     end if
 
-  end subroutine buffer_3d_npar_copy
+  end subroutine buffer_3d_nts_copy
 
-end module buffer_3d_npar
+end module buffer_3d_nts

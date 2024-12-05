@@ -14,6 +14,7 @@ neko_fortran_SOURCES = \
 	io/buffer/buffer_4d_npar.F90\
 	io/buffer/buffer_3d.F90\
 	io/buffer/buffer_3d_npar.F90\
+	io/buffer/buffer_3d_nts.F90\
 	common/log.f90\
 	comm/comm.F90\
 	mesh/curve.f90\

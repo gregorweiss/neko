@@ -58,10 +58,10 @@ module buffer_1d
 
 contains
 
-  subroutine buffer_1d_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+  subroutine buffer_1d_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar)
     class(buffer_1d_t), intent(inout) :: this
     logical, intent(in) :: precision
-    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz
+    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar
     integer :: lxyz
 
     lxyz = lx*ly*lz

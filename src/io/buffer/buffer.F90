@@ -56,10 +56,10 @@ module buffer
 
 contains
 
-  subroutine buffer_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+  subroutine buffer_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar)
     class(buffer_t), intent(inout) :: this
     logical, intent(in) :: precision
-    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz
+    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar
   end subroutine buffer_init
 
   subroutine buffer_fill(this, x, n)

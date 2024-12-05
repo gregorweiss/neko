@@ -61,14 +61,14 @@ module buffer_4d_npar
 
 contains
 
-  subroutine buffer_4d_npar_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+  subroutine buffer_4d_npar_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar)
     class(buffer_4d_npar_t), intent(inout) :: this
     logical, intent(in) :: precision
-    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz
+    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar
     integer :: lxyz
 
     nthpar = 0
-    npar = gdim
+    npar = lpar
     lxyz = lx*ly*lz
 
     call buffer_set_precision(this, precision)

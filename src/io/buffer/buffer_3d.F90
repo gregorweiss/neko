@@ -59,10 +59,10 @@ module buffer_3d
 
 contains
 
-  subroutine buffer_3d_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz)
+  subroutine buffer_3d_init(this, precision, gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar)
     class(buffer_3d_t), intent(inout) :: this
     logical, intent(in) :: precision
-    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz
+    integer, intent(in) :: gdim, glb_nelv, offset_el, nelv, lx, ly, lz, lts, lpar
     integer :: nelx, nely, nelz
 
     nelx = glb_nelv !> @todo unhack

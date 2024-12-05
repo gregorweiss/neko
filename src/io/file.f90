@@ -69,6 +69,8 @@ module file
      procedure :: set_precision => file_set_precision
      !> Set a file's output layout.
      procedure :: set_layout => file_set_layout
+     !> Set a number of time steps to pack together.
+     procedure :: set_time_pack => file_set_time_pack
      !> File operation destructor.
      final :: file_free
   end type file_t
@@ -81,11 +83,12 @@ contains
 
   !> File reader/writer constructor.
   !! @param fname Filename.
-  function file_init(fname, header, precision, layout) result(this)
+  function file_init(fname, header, precision, layout, time_pack) result(this)
     character(len=*) :: fname
     character(len=*), optional :: header
     integer, optional :: precision
     integer, optional :: layout
+    integer, optional :: time_pack
     type(file_t), target :: this
     character(len=80) :: suffix
     class(generic_file_t), pointer :: q
@@ -133,8 +136,13 @@ contains
        call this%set_precision(precision)
     end if
 
-    if (present(layout) .and. (suffix .eq. "bp")) then
-       call this%set_layout(layout)
+    if (suffix .eq. "bp") then
+       if (present(layout)) then
+          call this%set_layout(layout)
+       end if
+       if (present(time_pack)) then
+          call this%set_time_pack(time_pack)
+       end if
     end if
 
   end function file_init
@@ -253,5 +261,24 @@ contains
     end select
 
   end subroutine file_set_layout
+
+  !> Set a time step packing.
+  !! @param time_pack The number of time steps that are packed together (for compression).
+  subroutine file_set_time_pack(this, time_pack)
+    class(file_t), intent(inout) :: this
+    integer, intent(in) :: time_pack
+
+    character(len=80) :: suffix
+
+    select type(ft => this%file_type)
+    type is (bp_file_t)
+       call ft%set_time_pack(time_pack)
+    class default
+       call filename_suffix(this%file_type%fname, suffix)
+       call neko_warning("No set_time_pack defined for " // trim(suffix) // " yet!")
+    end select
+
+  end subroutine file_set_time_pack
+
 
 end module file

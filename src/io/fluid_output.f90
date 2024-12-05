@@ -56,7 +56,7 @@ module fluid_output
 
 contains
 
-  function fluid_output_init(precision, fluid, scalar, name, path, fmt, layout) result(this)
+  function fluid_output_init(precision, fluid, scalar, name, path, fmt, layout, time_pack) result(this)
     integer, intent(inout) :: precision
     class(fluid_scheme_t), intent(in), target :: fluid
     class(scalar_scheme_t), intent(in), optional, target :: scalar
@@ -64,6 +64,7 @@ contains
     character(len=*), intent(in), optional :: path
     character(len=*), intent(in), optional :: fmt
     integer, intent(in), optional :: layout
+    integer, intent(in), optional :: time_pack
     type(fluid_output_t) :: this
     character(len=1024) :: fname
     character(len=10) :: suffix
@@ -85,7 +86,9 @@ contains
        fname = 'field' // trim(suffix)
     end if
 
-    if (present(layout)) then
+    if (present(layout) .and. present(time_pack)) then
+       call this%init_base(fname, precision, layout, time_pack)
+    else if (present(layout)) then
        call this%init_base(fname, precision, layout)
     else
        call this%init_base(fname, precision)
